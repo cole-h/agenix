@@ -121,6 +121,8 @@ in {
       mkdir -pm 0750 "${cfg.secretsMountPoint}/$_count"
       chown :keys "${cfg.secretsMountPoint}" "${cfg.secretsMountPoint}/$_count"
       ln -sfn "${cfg.secretsMountPoint}/$_count" /run/secrets
+      echo "[agenix] removing old secrets generation $((( _count - 1 )))..."
+      (( _count > 1 )) && rm -rf "${cfg.secretsMountPoint}/$((( _count - 1 )))"
     '';
 
     # Secrets with root owner and group can be installed before users
