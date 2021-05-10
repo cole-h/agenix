@@ -28,7 +28,7 @@ let
     chmod ${secretType.mode} "$TMP_FILE"
     chown ${secretType.owner}:${secretType.group} "$TMP_FILE"
     mv -f "$TMP_FILE" "$_truePath"
-    [ "${secretType.path}" != "/run/secrets/${secretType.name}" ] && ln -sfn "/run/secrets/${secretType.name}" "${secretType.path}"
+    [ "${secretType.path}" != "/run/agenix/${secretType.name}" ] && ln -sfn "/run/agenix/${secretType.name}" "${secretType.path}"
   '';
 
   isRootSecret = st: (st.owner == "root" || st.owner == "0") && (st.group == "root" || st.group == "0");
@@ -46,7 +46,7 @@ let
         type = types.str;
         default = config._module.args.name;
         description = ''
-          Name of the file used in /run/secrets
+          Name of the file used in /run/agenix
         '';
       };
       file = mkOption {
@@ -57,7 +57,7 @@ let
       };
       path = mkOption {
         type = types.str;
-        default = "/run/secrets/${config.name}";
+        default = "/run/agenix/${config.name}";
         description = ''
           Path where the decrypted secret is installed.
         '';
@@ -101,9 +101,9 @@ in
           (builtins.match "[ \t\n]*" s) == null # non-empty
             && (builtins.match ".+/" s) == null) # without trailing slash
       // { description = "${types.str.description} (with check: non-empty without trailing slash)"; };
-      default = "/run/secrets.d";
+      default = "/run/agenix.d";
       description = ''
-        Where secrets are created before they are symlinked to /run/secrets
+        Where secrets are created before they are symlinked to /run/agenix
       '';
     };
     sshKeyPaths = mkOption {
