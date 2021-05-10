@@ -127,16 +127,15 @@ in
     # ensure removed secrets are actually removed, or at least become
     # invalid symlinks).
     system.activationScripts.agenixMountSecrets = ''
-      _count="$(basename "$(readlink /run/secrets)" || echo 0)"
+      _count="$(basename "$(readlink /run/agenix)" || echo 0)"
       (( ++_count ))
-      echo "[agenix] symlinking new secrets to /run/secrets (generation $_count)..."
+      echo "[agenix] symlinking new secrets to /run/agenix (generation $_count)..."
       mkdir -p "${cfg.secretsMountPoint}"
       chmod 0750 "${cfg.secretsMountPoint}"
       grep -q "${cfg.secretsMountPoint} ramfs" /proc/mounts || mount -t ramfs none "${cfg.secretsMountPoint}" -o nodev,nosuid,mode=0750
       mkdir -p "${cfg.secretsMountPoint}/$_count"
       chmod 0750 "${cfg.secretsMountPoint}/$_count"
-      chown :keys "${cfg.secretsMountPoint}" "${cfg.secretsMountPoint}/$_count"
-      ln -sfn "${cfg.secretsMountPoint}/$_count" /run/secrets
+      ln -sfn "${cfg.secretsMountPoint}/$_count" /run/agenix
 
       (( _count > 1 )) && {
         echo "[agenix] removing old secrets (generation $(( _count - 1 )))..."
@@ -152,7 +151,28 @@ in
     };
     system.activationScripts.users.deps = [ "agenixRoot" ];
 
+    # chown the secrets mountpoint and the current generation to the keys group
+    # instead of leaving it root:root.
+    system.activationScripts.agenixChownKeys = {
+      text = ''
+        chown :keys "${cfg.secretsMountPoint}" "${cfg.secretsMountPoint}/$_count"
+      '';
+      deps = [
+        "users"
+        "groups"
+        "agenixMountSecrets"
+      ];
+    };
+
     # Other secrets need to wait for users and groups to exist.
-    system.activationScripts.agenix = stringAfter [ "users" "groups" ] installNonRootSecrets;
+    system.activationScripts.agenix = {
+      text = installNonRootSecrets;
+      deps = [
+        "users"
+        "groups"
+        "agenixMountSecrets"
+        "agenixChownKeys"
+      ];
+    };
   };
 }
